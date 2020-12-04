@@ -19,16 +19,6 @@ hgt:179cm
 hcl:#cfa07d eyr:2025 pid:166559648
 iyr:2011 ecl:brn hgt:59in"""
 
-required_fields = [
-  "byr",
-  "iyr",
-  "eyr",
-  "hgt",
-  "hcl",
-  "ecl",
-  "pid",
-  # "cid"
-]
 
 invalid_passports = """eyr:1972 cid:100
 hcl:#18171d ecl:amb hgt:170 pid:186cm iyr:2018 byr:1926
@@ -44,6 +34,7 @@ hgt:59cm ecl:zzz
 eyr:2038 hcl:74454a iyr:2023
 pid:3556412378 byr:2007"""
 
+
 valid_passports = """pid:087499704 hgt:74in ecl:grn iyr:2012 eyr:2030 byr:1980
 hcl:#623a2f
 
@@ -57,6 +48,19 @@ eyr:2022
 
 iyr:2010 hgt:158cm hcl:#b6652a ecl:blu byr:1944 eyr:2021 pid:093154719
 """
+
+
+required_fields = [
+  "byr",
+  "iyr",
+  "eyr",
+  "hgt",
+  "hcl",
+  "ecl",
+  "pid",
+  # "cid"
+]
+
 
 def make_dict(info_str):
   """Returns something like
@@ -92,7 +96,7 @@ def validate_field(key, value):
   value = value.strip()
 
   if key == 'byr':
-    return validate_int( value, 1920, 2002)
+    return validate_int(value, 1920, 2002)
 
   if key == 'iyr':
     return validate_int(value, 2010, 2020)
@@ -124,6 +128,33 @@ def validate_field(key, value):
   raise ValueError('Should not be here')
 
 
+def is_valid(passport):
+  for field in required_fields:
+    if field not in passport:
+      return False
+    if not validate_field(field, passport[field]):
+      return False
+  return True
+
+
+def make_passports(data):
+  raw_passports = data.split('\n\n')
+
+  passports = []
+  for val in raw_passports:
+    all_info = val.replace('\n', ' ')
+    fields = make_dict(all_info)
+    passports.append(fields)
+
+  return passports
+
+
+def get_valid_count(data):
+  passports = make_passports(data)
+  valid_count = sum(is_valid(p) for p in passports)
+  return valid_count
+
+
 assert validate_field('byr', '2002') == True
 assert validate_field('byr', '2003') == False
 assert validate_field('hgt', '60in') == True
@@ -138,46 +169,10 @@ assert validate_field('ecl', 'wat') == False
 assert validate_field('pid', '000000001') == True
 assert validate_field('pid', '0123456789') == False
 
-
-def is_valid(passport):
-  for field in required_fields:
-    if field not in passport.keys():
-      return False
-    value = passport[field]
-    valid = validate_field(field, value)
-    # print('field', field, 'value', value, 'valid', valid)
-    if not valid:
-      return False
-  return True
-
-
-def get_valid_count(data):
-  data = data.split('\n')
-  index = 0
-  raw_passports = defaultdict(list)
-  # grouping passport info together using a dict
-  for i, info in enumerate(data):
-    if info == '':
-      index += 1
-    if info != '':
-      raw_passports[index].append(info)
-
-  # a list of dictionaries containing password key:values
-  passports = []
-  for key, val in raw_passports.items():
-    all_info = ' '.join(val)
-    fields = make_dict(all_info)
-    passports.append(fields)
-
-  valid_count = 0
-  for p in passports:
-    if is_valid(p):
-      valid_count+=1
-  return valid_count
-
 assert get_valid_count(data) == 2
 assert get_valid_count(valid_passports) == 4
 assert get_valid_count(invalid_passports) == 0
+
 
 with open(os.path.basename(__file__).replace('.py', '.txt')) as f:
   lines = f.read()
