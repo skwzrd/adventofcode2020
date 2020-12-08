@@ -2,8 +2,6 @@ from pprint import pprint
 import re
 from typing import NamedTuple, Dict, List
 import os
-from collections import defaultdict
-
 
 raw_rules1 = """light red bags contain 1 bright white bag, 2 muted yellow bags.
 dark orange bags contain 3 bright white bags, 4 muted yellow bags.
@@ -16,13 +14,13 @@ faded blue bags contain no other bags.
 dotted black bags contain no other bags."""
 
 
-# raw_rules2 = """shiny gold bags contain 2 dark red bags.
-# dark red bags contain 2 dark orange bags.
-# dark orange bags contain 2 dark yellow bags.
-# dark yellow bags contain 2 dark green bags.
-# dark green bags contain 2 dark blue bags.
-# dark blue bags contain 2 dark violet bags.
-# dark violet bags contain no other bags."""
+raw_rules2 = """shiny gold bags contain 2 dark red bags.
+dark red bags contain 2 dark orange bags.
+dark orange bags contain 2 dark yellow bags.
+dark yellow bags contain 2 dark green bags.
+dark green bags contain 2 dark blue bags.
+dark blue bags contain 2 dark violet bags.
+dark violet bags contain no other bags."""
 
 
 def remove_bags(phrase):
@@ -34,7 +32,7 @@ class Bag(NamedTuple):
   children: Dict[str, int]
 
 
-def count_colours(bags):
+def count_colours(bags, search='shiny gold', colours=set()):
   """bags = [
     Bag(name='light red', children={'bright white': 1, 'muted yellow': 2}),
     Bag(name='dark orange', children={'bright white': 3, 'muted yellow': 4}),
@@ -46,33 +44,31 @@ def count_colours(bags):
     Bag(name='faded blue', children={}),
     Bag(name='dotted black', children={})
   ]"""
-  can_carry_shiny = set()
-  shiny = ['shiny gold']
 
-  while shiny:
-    shine = shiny.pop()
-    for bag in bags:
-      if shine in bag.children.keys():
-        can_carry_shiny.add(bag.name)
-        shiny.append(bag.name)
+  # get parents
+  parents = set()
+  for bag in bags:
+    if search in bag.children:
+      parents.add(bag.name)
+      colours.add(bag.name)
 
-  count = len(can_carry_shiny)
+  # get parents of parents
+  for parent in parents:
+    count_colours(bags, search=parent)
+  
+  return len(colours)
+
+
+def get_name_to_bags(bags):
+  return {bag.name: bag for bag in bags}
+
+
+def count_bags(bags, search='shiny gold'):
+  name_to_bags = get_name_to_bags(bags)
+  count = 0
+  for child, num in name_to_bags[search].children.items():
+    count += num + num * count_bags(bags, search=child)
   return count
-
-
-def count_bags(bags):
-  shiny = 'shiny gold'
-
-  name_to_bag = {bag.name: bag for bag in bags}
-  total = 0
-  stack = [(shiny, 1)]
-  while stack:
-    next_bag, mult = stack.pop()
-    bag = name_to_bag[next_bag]
-    for child, count in bag.children.items():
-      total += count * mult
-      stack.append((child, count * mult))
-  return total
 
 
 def parse_rule(rule_line):
@@ -122,6 +118,7 @@ def part2(lines):
 
 assert part1(raw_rules1) == 4
 assert part2(raw_rules1) == 32
+assert part2(raw_rules2) == 126
 
 
 with open(os.path.basename(__file__).replace('.py', '.txt')) as f:
